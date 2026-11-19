@@ -3,6 +3,7 @@ from transformers import BitsAndBytesConfig, AutoProcessor, AutoModelForImageTex
 from dotenv import load_dotenv
 import torch
 import os
+import re
 from PIL import Image
 
 PROMPT = [
@@ -29,7 +30,6 @@ def hf_login():
     login(hf_token, add_to_git_credential=True)
 
 
-
 class LlamaOCR():
     def __init__(self,model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct", quant:bool =True ):
         self.model_id = model_id
@@ -48,6 +48,21 @@ class LlamaOCR():
         self.model = AutoModelForImageTextToText.from_pretrained(model_id,device_map="auto",quantization_config = self.quant_config )
         # Evaluate
         self.model.eval()
+
+    def _clean_latex(self, text: str) -> str:
+        text = text.strip()
+
+        # 1. Strip outer markdown code fences like ```latex ... ``` or ``` ... ```
+        text = re.sub(r"^```(?:latex|tex)?\s*|\s*```$", "", text).strip()
+
+        # 2. Strip outer math delimiters (check $$ before $!)
+        for start, end in [("$$", "$$"), (r"\[", r"\]"), (r"\(", r"\)"), ("$", "$")]:
+            if text.startswith(start) and text.endswith(end):
+                text = text[len(start):-len(end)].strip()
+                break
+
+        return text
+
     def extract_latex(self,image:Image.Image,prompt:str = PROMPT) -> str:
         # Format the conversation, turn the PROMPT into the format the llama model expected
         text_input = self.processor.apply_chat_template(prompt,add_generation_prompt =True, tokenize = False)
@@ -62,13 +77,7 @@ class LlamaOCR():
 
         # Decode only the latex text
         latext = self.processor.decode(output[0][prompt_len:],skip_special_tokens=True)
-        return latext
+        return self._clean_latex(latext)
 
         
 
-
-
-hf_login()
-model = LlamaOCR()
-img = Image.open("img.png")
-model.extract_latex(image=img)
