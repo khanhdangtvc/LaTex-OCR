@@ -1,0 +1,31 @@
+[project]
+name = "latex-ocr"
+version = "0.1.0"
+description = "Local quantized VLM for LaTeX OCR"
+requires-python = ">=3.11"
+dependencies = [
+    "torch",
+    "torchvision",
+    "transformers>=4.49.0",
+    "accelerate",
+    "bitsandbytes",
+    "huggingface-hub",
+    "pillow",
+    "python-dotenv",
+    "streamlit",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
